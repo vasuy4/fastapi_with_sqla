@@ -23,16 +23,16 @@ class DatabaseHelper:
         )
         self.session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
             bind=self.engine,
-            autoflush=False,
-            autocommit=False,
-            expire_on_commit=False,  # Все 3 False, т.к. работаем с I/O асинхронно
+            autoflush=False,  # Отключает автоматическую отправку изменений в БД перед запросами. Без autoflush можно накопить несколько изменений и отправить одним запросом
+            autocommit=False,  # Запрещает автоматическое коммитление после каждого запроса. Требует явного вызова commit() или rollback()
+            expire_on_commit=False,  # Не сбрасывает состояние объектов после коммита. Позволяет повторно использовать объекты без повторного запроса к БД.
         )
 
     async def dispose(self) -> None:
-        await self.engine.dispose()  # закрытие соединения
+        await self.engine.dispose()  # асинхронно закрывает все соединения в пуле
 
     async def session_getter(self) -> AsyncGenerator[AsyncSession, None]:
-        async with self.session_factory() as session:
+        async with self.session_factory() as session:  # Асинхронный контекстный менеджер для работы с сессиями
             yield session
             # await session.close() - уже реализовано. Произойдёт автоматически.
 
